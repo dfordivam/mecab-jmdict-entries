@@ -1,3 +1,4 @@
+{-# LANGUAGE TemplateHaskell #-}
 module MecabJmDict
   where
 
@@ -15,8 +16,14 @@ import Text.Read
 import Data.JMDict.AST
 import Data.Char
 import Text.Pretty.Simple
+import qualified Data.Conduit.List
+import qualified Data.JMDict.XML.Parser as X
+import Data.JMDict.AST.Parser hiding (isKana)
+import Text.XML.Stream.Parse hiding (anyOf)
+import Control.Monad.Trans.Resource
 import NLP.Japanese.Utils
 import Data.Binary
+import Data.Conduit
 
 import Text.MeCab
 import qualified Data.ByteString.Lazy as BSL
@@ -34,16 +41,14 @@ fKs k
   | otherwise = True
 
 fnd = do
-  binFile <- BSL.readFile "es.bin"
+  esAll <- getJMDictEntries jmDictFilePath
   let
-      esAll :: [(Entry, VocabDetails)]
-      esAll = Data.Binary.decode binFile
       es = esAll
 
   mec <- getMecab
 
   count <- newIORef 0
-  void $ forM es $ \(e,_) -> do
+  void $ forM es $ \e -> do
     let
       ks = filter fKs (e ^.. entryKanjiElements . traverse)
       rs = (e ^.. entryReadingElements . traverse . readingPhrase . to unReadingPhrase)
@@ -61,6 +66,15 @@ fnd = do
         then modifyIORef' count (+ 1)
         else return ()
   print =<< readIORef count
+
+
+getJMDictEntries :: FilePath -> IO [Entry]
+getJMDictEntries fp =
+  runResourceT $ parseFile parseSetting fp
+    $$ X.parseJMDict
+    .| Data.Conduit.List.map makeAST
+    .| Data.Conduit.List.mapMaybe (rightToMaybe)
+    .| Data.Conduit.List.consume
 
 parseMecab :: MeCab -> Text -> IO ([(Text, Maybe MecabNodeFeatures)])
 parseMecab m t = do

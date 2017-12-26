@@ -13,6 +13,7 @@ cabal-version:       >=1.10
 
 library
   exposed-modules:   MecabJmDict
+                     , MecabEntry
 
   -- other-modules:       
   default-extensions:    
@@ -26,6 +27,7 @@ library
                      , data-default
                      , lens
                      , text
+                     , mtl
                      , containers
                      , jmdict-ast
                      , jmdict-xml-parser

@@ -67,7 +67,10 @@ fnd = do
       if (length res > 1)
         then modifyIORef' count (incrementPosMap poss)
         else return ()
-  pPrint =<< readIORef count
+  c <- readIORef count
+  let cs =  reverse $ sortBy (comparing snd) $ Map.toList c
+
+  pPrint cs
 
 incrementPosMap ps m = foldl' (\m p -> Map.alter inc p m) m ps
   where inc Nothing = Just 1
@@ -125,6 +128,94 @@ data MecabNodeFeatures = MecabNodeFeatures
   deriving (Show)
 
 makeLenses ''MecabNodeFeatures
+-- [
+--     ( PosNoun
+--     , 59716
+--     )
+-- ,
+--     ( PosExpressions
+--     , 11456
+--     )
+-- ,
+--     ( PosNounType AdjNoun_No
+--     , 2569
+--     )
+-- ,
+--     ( PosNounType NounWithSuru
+--     , 2399
+--     )
+-- ,
+--     ( PosVerb ( Regular Ichidan ) NotSpecified
+--     , 2189
+--     )
+-- ,
+--     ( PosAdjective IAdjective
+--     , 1608
+--     )
+-- ,
+--     ( PosAdjective NaAdjective
+--     , 1564
+--     )
+-- ,
+--     ( PosVerb ( Regular ( Godan RuEnding ) ) NotSpecified
+--     , 1448
+--     )
+-- ,
+--     ( PosVerb ( Regular ( Godan SuEnding ) ) NotSpecified
+--     , 1073
+--     )
+-- ,
+--     ( PosAdverb Adverb
+--     , 1068
+--     )
+-- ,
+--     ( PosVerb ( Regular ( Godan KuEnding ) ) NotSpecified
+--     , 723
+--     )
+-- ,
+--     ( PosVerb ( Regular Ichidan ) Transitive
+--     , 705
+--     )
+-- ,
+--     ( PosVerb ( Regular ( Godan SuEnding ) ) Transitive
+--     , 575
+--     )
+-- ,
+--     ( PosVerb ( Regular ( Godan UEnding ) ) NotSpecified
+--     , 565
+--     )
+-- ,
+--     ( PosAdjective PreNominalAdjective
+--     , 527
+--     )
+-- ,
+--     ( PosVerb ( Regular ( Godan RuEnding ) ) Intransitive
+--     , 477
+--     )
+-- ,
+--     ( PosVerb ( Regular Ichidan ) Intransitive
+--     , 335
+--     )
+-- ,
+--     ( PosVerb ( Regular ( Godan MuEnding ) ) NotSpecified
+--     , 271
+--     )
+-- ,
+--     ( PosVerb ( Regular ( Godan RuEnding ) ) Transitive
+--     , 250
+--     )
+-- ,
+--     ( PosVerb ( Irregular SuruI ) NotSpecified
+--     , 233
+--     )
+-- ,
+--     ( PosAdverb Adverb_To
+--     , 189
+--     )
+-- ,
+--     ( PosNounType AdverbialNoun
+--     , 171
+--     )
 
 -- fromList
 --     [

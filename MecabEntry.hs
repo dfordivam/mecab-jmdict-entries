@@ -152,3 +152,28 @@ makeMecabSets fp = do
     -- , "連用タ接続"
     -- , "連用形"
 
+
+-- Adj.csv
+-- t2, t3 (11, 146)
+-- t4 (842, 9609)
+-- t5 形容詞
+-- t6 "接尾"
+-- t7 Nothing
+-- t8 Nothing
+-- t9 "不変化型"
+-- t10 "ガル接続"
+
+-- Noun.csv
+-- t2, t3 (1285, 1285)
+-- t4 (-19662, 16360)
+-- t5 名詞
+-- t6 "一般"
+-- t7 Nothing
+-- t8 Nothing
+-- t9 Nothing
+-- t10 Nothing
+
+-- Adverb.csv
+-- t5 副詞
+-- t6 "一般", "助詞類接続"
+

@@ -7,6 +7,7 @@ import           Control.Lens
 import qualified Data.List.NonEmpty as NE
 import Data.List.NonEmpty (NonEmpty(..))
 import qualified Data.Text as T
+import qualified Data.Text.IO as T
 import qualified Data.Set as Set
 import           Data.Set (Set)
 import qualified Data.Map as Map
@@ -40,6 +41,10 @@ fKs k
   | T.last (unKanjiPhrase $ k ^. kanjiPhrase) == 'て' = False
   | otherwise = True
 
+fRs r
+  | not (null $ r ^. readingInfo) = False
+  | otherwise = True
+
 fnd = do
   esAll <- getJMDictEntries jmDictFilePath
   let
@@ -47,17 +52,18 @@ fnd = do
 
   mec <- getMecab
 
+  fh <- openFile "entries" WriteMode
   count <- newIORef $ Map.empty
   void $ forM es $ \e -> do
     let
       ks = filter fKs (e ^.. entryKanjiElements . traverse)
-      rs = (e ^.. entryReadingElements . traverse . readingPhrase . to unReadingPhrase)
+      rs = filter fRs (e ^.. entryReadingElements . traverse)
       isUk = elem UsuallyKana (e ^.. entrySenses . traverse . senseMisc . traverse)
 
       poss = e ^.. entrySenses . traverse. sensePartOfSpeech . traverse
 
       kss = if isUk
-        then rs
+        then rs ^.. traverse . readingPhrase . to unReadingPhrase
         else ks ^.. traverse . kanjiPhrase . to unKanjiPhrase
     -- when (not $ null kss) $ pPrint kss
     forM (kss) $ \r -> do
@@ -66,6 +72,7 @@ fnd = do
       -- pPrint res
       if (length res > 1)
         then modifyIORef' count (incrementPosMap poss)
+          >> T.hPutStrLn fh r
         else return ()
   c <- readIORef count
   let cs =  reverse $ sortBy (comparing snd) $ Map.toList c

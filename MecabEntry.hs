@@ -25,7 +25,7 @@ import Control.Monad.Trans.Resource
 import NLP.Japanese.Utils
 import Data.Binary
 import Data.Conduit
-import Control.Monad.Writer
+import Control.Monad.Writer hiding ((<>))
 import Control.Exception (assert)
 import Text.MeCab
 import qualified Data.ByteString.Lazy as BSL
@@ -161,21 +161,23 @@ makeMecabSets fp = do
 -- 逆らえりゃ,618,618,7150,動詞,自立,*,*,一段,仮定縮約１,逆らえる,サカラエリャ,サカラエリャ
 -- 逆らえん,620,620,7150,動詞,自立,*,*,一段,体言接続特殊,逆らえる,サカラエン,サカラエン
 
+getKatakana (ReadingPhrase rp) = hiraganaToKatakana rp
+
 makeIchidanMecabEntries
   :: (Surface, ReadingPhrase)
-  -> Bool
   -> [MecabEntry]
 makeIchidanMecabEntries (s,rp) =
-  [MecabEntry su i 7150 "動詞" t6 "一段" t10 s t12
+  [MecabEntry su i 7150 "動詞" t6 (Just "一段") t10 s t12
    | su <- surfaces
    | t10 <- types
    | t12 <- readings]
   where
     i = 610
+    t6 = Just "自立"
     stem = assert (T.last s == 'る') (T.init s)
     surfaces = map (\e -> stem <> e) endings
     readings = map (\e -> (T.init $ getKatakana rp)
-                     <> (toKatakana e)) endings
+                     <> (hiraganaToKatakana e)) endings
     types = map Just
       [ "基本形"
       , "未然形"
@@ -206,13 +208,15 @@ makeGodanMecabEntries (s,rp) end =
    | t12 <- readings]
   where
     i = 610
+    t6 = Just "自立"
     stem = (T.init s)
     surfaces = map (\e -> stem <> e) endings
     readings = map (\e -> (T.init $ getKatakana rp)
-                     <> (toKatakana e)) endings
+                     <> (hiraganaToKatakana e)) endings
     endings = map fst es
     types = map snd es
-    (es, t7) = case end of
+    t7 = Just t7t
+    (es, t7t) = case end of
        KuEnding -> (,) kuEndings "五段・カ行イ音便"
        GuEnding -> (,) guEndings "五段・ガ行"
        SuEnding -> (,) suEndings "五段・サ行"
@@ -241,7 +245,7 @@ makeGodanMecabEntries (s,rp) end =
 -- やじん,774,774,9279,動詞,自立,*,*,五段・ラ行,体言接続特殊,やじる,ヤジン,ヤジン
 -- やじ,776,776,9287,動詞,自立,*,*,五段・ラ行,体言接続特殊２,やじる,ヤジ,ヤジ
 
-ruEndings =
+ruEndings = map (\(a,b) -> (a, Just b))
       [ ("る", "基本形")
       , ("ら", "未然形")
       , ("ん", "未然特殊")
@@ -263,7 +267,7 @@ ruEndings =
 -- きずけ,685,685,9279,動詞,自立,*,*,五段・カ行イ音便,命令ｅ,きずく,キズケ,キズケ
 -- きずきゃ,677,677,9279,動詞,自立,*,*,五段・カ行イ音便,仮定縮約１,きずく,キズキャ,キズキャ
 
-kuEndings =
+kuEndings = map (\(a,b) -> (a, Just b))
        [ ("く" , "基本形")
        , ("か" , "未然形")
        , ("こ" , "未然ウ接続")
@@ -282,7 +286,7 @@ kuEndings =
 -- せめげ,726,726,9279,動詞,自立,*,*,五段・ガ行,命令ｅ,せめぐ,セメゲ,セメゲ
 -- せめぎゃ,722,722,9279,動詞,自立,*,*,五段・ガ行,仮定縮約１,せめぐ,セメギャ,セメギャ
 
-guEndings =
+guEndings = map (\(a,b) -> (a, Just b))
        [ ("ぐ" , "基本形")
        , ("が" , "未然形")
        , ("ご" , "未然ウ接続")
@@ -300,7 +304,7 @@ guEndings =
 -- 乗り通せ,734,734,7150,動詞,自立,*,*,五段・サ行,命令ｅ,乗り通す,ノリトオセ,ノリトーセ
 -- 乗り通しゃ,730,730,7150,動詞,自立,*,*,五段・サ行,仮定縮約１,乗り通す,ノリトオシャ,ノリトーシャ
 
-suEndings =
+suEndings = map (\(a,b) -> (a, Just b))
        [ ("す" , "基本形")
        , ("さ" , "未然形")
        , ("そ" , "未然ウ接続")
@@ -319,7 +323,7 @@ suEndings =
 -- ようだちゃ,737,737,9292,動詞,自立,*,*,五段・タ行,仮定縮約１,ようだつ,ヨウダチャ,ヨウダチャ
 
 
-tuEndings =
+tuEndings = map (\(a,b) -> (a, Just b))
        [ ("つ" , "基本形")
        , ("た" , "未然形")
        , ("と" , "未然ウ接続")
@@ -338,7 +342,7 @@ tuEndings =
 -- 往ね,749,749,6797,動詞,自立,*,*,五段・ナ行,命令ｅ,往ぬ,イネ,イネ
 -- 往にゃ,745,745,7150,動詞,自立,*,*,五段・ナ行,仮定縮約１,往ぬ,イニャ,イニャ
 
-nuEndings =
+nuEndings = map (\(a,b) -> (a, Just b))
        [ ("ぬ" , "基本形")
        , ("な" , "未然形")
        , ("の" , "未然ウ接続")
@@ -357,7 +361,7 @@ nuEndings =
 -- はこべ,757,757,9280,動詞,自立,*,*,五段・バ行,命令ｅ,はこぶ,ハコベ,ハコベ
 -- はこびゃ,753,753,9280,動詞,自立,*,*,五段・バ行,仮定縮約１,はこぶ,ハコビャ,ハコビャ
 
-buEndings =
+buEndings = map (\(a,b) -> (a, Just b))
        [ ("ぶ" , "基本形")
        , ("ば" , "未然形")
        , ("ぼ" , "未然ウ接続")
@@ -376,7 +380,7 @@ buEndings =
 -- きらめめ,765,765,9279,動詞,自立,*,*,五段・マ行,命令ｅ,きらめむ,キラメメ,キラメメ
 -- きらめみゃ,761,761,9279,動詞,自立,*,*,五段・マ行,仮定縮約１,きらめむ,キラメミャ,キラメミャ
 
-muEndings =
+muEndings = map (\(a,b) -> (a, Just b))
        [ ("む" , "基本形")
        , ("ま" , "未然形")
        , ("も" , "未然ウ接続")
@@ -394,7 +398,7 @@ muEndings =
 -- かちあえ,814,814,9279,動詞,自立,*,*,五段・ワ行促音便,仮定形,かちあう,カチアエ,カチアエ
 -- かちあえ,826,826,9279,動詞,自立,*,*,五段・ワ行促音便,命令ｅ,かちあう,カチアエ,カチアエ
 
-uEndings =
+uEndings = map (\(a,b) -> (a, Just b))
        [ ("う" , "基本形")
        , ("わ" , "未然形")
        , ("お" , "未然ウ接続")
@@ -416,10 +420,9 @@ uEndings =
 
 makeSuruIMecabEntries
   :: (Surface, ReadingPhrase)
-  -> Bool
   -> [MecabEntry]
 makeSuruIMecabEntries (s,rp) =
-  [MecabEntry su i 7150 "動詞" (Just "自立") "サ変・−スル" t10 s t12
+  [MecabEntry su i 7150 "動詞" (Just "自立") (Just "サ変・−スル") t10 s t12
    | su <- surfaces
    | t10 <- types
    | t12 <- readings]
@@ -429,7 +432,7 @@ makeSuruIMecabEntries (s,rp) =
       (maybe "" identity $ T.stripSuffix "する" s)
     surfaces = map (\e -> stem <> e) endings
     readings = map (\e -> (T.init $ T.init $ getKatakana rp)
-                     <> (toKatakana e)) endings
+                     <> (hiraganaToKatakana e)) endings
     types = map Just
       [ "基本形"
       , "文語基本形"
@@ -550,7 +553,7 @@ makeAdjMecabEntries (s,rp) isSuffix =
     endings = (if aou then aouEndings else iEndings)
     surfaces = map (\e -> stem <> e) endings
     readings = map (\e -> (T.init $ getKatakana rp)
-                     <> (toKatakana e)) endings
+                     <> (hiraganaToKatakana e)) endings
 
     aou = not $ elem (T.last stem) ['し', 'じ', 'ち', 'き']
     adjTypes = map Just

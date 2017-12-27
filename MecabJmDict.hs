@@ -55,6 +55,7 @@ fnd = do
 
   fh <- openFile "entries" WriteMode
   count <- newIORef $ Map.empty
+  esRef <- newIORef $ Map.empty
   void $ forM es $ \e -> do
     let
       ks = filter fKs (e ^.. entryKanjiElements . traverse)
@@ -74,11 +75,22 @@ fnd = do
       if (length res > 1)
         then modifyIORef' count (incrementPosMap poss)
           >> T.hPutStrLn fh r
+          >> modifyIORef' esRef (addToMap r $ _entryUniqueId e)
         else return ()
   c <- readIORef count
-  let cs =  reverse $ sortBy (comparing snd) $ Map.toList c
+  -- let cs =  reverse $ sortBy (comparing snd) $ Map.toList c
 
-  pPrint cs
+  -- pPrint cs
+  esIdSet <- readIORef esRef
+  let esMap = Map.fromList $ map
+               (\e -> (_entryUniqueId e,e)) esAll
+  return $ catMaybes $
+    map (\(k,rs) -> (,) <$> Map.lookup k esMap <*> pure rs)
+    $ Map.toList esIdSet
+
+addToMap r k = Map.alter f k
+  where f Nothing = Just [r]
+        f (Just rs) = Just (r:rs)
 
 incrementPosMap ps m = foldl' (\m p -> Map.alter inc p m) m ps
   where inc Nothing = Just 1
@@ -137,8 +149,38 @@ data MecabNodeFeatures = MecabNodeFeatures
 
 makeLenses ''MecabNodeFeatures
 
-createMecabEntries :: Entry -> [MecabEntry]
-createMecabEntries e = concat $ map mainF vs
+main = do
+  es <- fnd
+  n <- openFile "Noun.csv" WriteMode
+  exp <- openFile "Expression.csv" WriteMode
+  adj <- openFile "Adj.csv" WriteMode
+  nadj <- openFile "Noun.adj.csv" WriteMode
+  verb <- openFile "Verb.csv" WriteMode
+  adv <- openFile "Adv.csv" WriteMode
+
+  let mes = map createMecabEntries es
+      writeTo me fh =
+        mapM (\e -> T.hPutStrLn fh (renderEntry e)) me
+      writeEntry (PosExpressions, me) =
+        writeTo me exp
+      writeEntry (PosAdjective IAdjective, me) =
+        writeTo me adj
+      writeEntry (PosVerb _ _, me) =
+        writeTo me verb
+      writeEntry (PosAdjective _, me) =
+        writeTo me nadj
+      writeEntry (PosNounType AdjNoun_No, me) =
+        writeTo me nadj
+      writeEntry (PosNounType AdverbialNoun, me) =
+        writeTo me adv
+      writeEntry (_, me) =
+        writeTo me n
+
+  mapM_ writeEntry mes
+
+createMecabEntries :: (Entry, [Text])
+  -> (PartOfSpeech, [MecabEntry])
+createMecabEntries (e, ts) = (,) pos $ concat $ map mainF vs
   where
     mainF v =
       case pos of
@@ -171,27 +213,24 @@ createMecabEntries e = concat $ map mainF vs
         _ -> []
 
     defRP = (e ^. entryReadingElements . to (NE.head) . readingPhrase)
-    vs = (map findRestReading ks)
-      <> (map (\x -> (unReadingPhrase x, x)) rs)
+    vs = (map findRestReading ts)
 
-    ks = (e ^.. entryKanjiElements . traverse . kanjiPhrase)
-
-    rs = (e ^.. entryReadingElements . traverse . readingPhrase)
-
-    findRestReading kp = (,) (unKanjiPhrase kp)
+    findRestReading t = (,) t
       $ maybe defRP _readingPhrase
-      $ Map.lookup kp (restrictedKanjiPhrases e)
+      $ Map.lookup (KanjiPhrase t) (restrictedKanjiPhrases e)
     v = ("", ReadingPhrase "")
     isSuffix = elem PosSuffix poss
       || elem (PosNounType SuffixNoun) poss
     poss = e ^.. entrySenses . traverse. sensePartOfSpeech . traverse
     pnt = head [x | PosNounType x <- poss]
     pvt = head [x | PosVerb x _ <- poss]
+    pat = head [x | PosAdjective x <- poss]
     pos
       | elem PosExpressions poss = PosExpressions
       | elem PosNoun poss = PosNoun
       | otherwise = maybe PosNoun identity
         $ (PosNounType <$> pnt)
+        <|> (PosAdjective <$> pat)
         <|> (PosVerb <$> pvt <*> pure Transitive)
 
 restrictedKanjiPhrases :: Entry

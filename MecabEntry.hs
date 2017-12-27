@@ -552,7 +552,9 @@ makeAdjMecabEntries (s,rp) isSuffix =
 
   where
     i = 40
-    stem = assert (T.last s == 'い') (T.init s)
+    stem = if (T.last s == 'い')
+      then (T.init s)
+      else error (show s)
     t6 = Just $ if isSuffix
       then "接尾"
       else "自立"

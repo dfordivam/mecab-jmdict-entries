@@ -62,7 +62,7 @@ fnd = do
 
       poss = e ^.. entrySenses . traverse. sensePartOfSpeech . traverse
 
-      kss = if isUk
+      kss = if isUk || (null ks)
         then rs ^.. traverse . readingPhrase . to unReadingPhrase
         else ks ^.. traverse . kanjiPhrase . to unKanjiPhrase
     -- when (not $ null kss) $ pPrint kss
@@ -135,35 +135,47 @@ data MecabNodeFeatures = MecabNodeFeatures
   deriving (Show)
 
 makeLenses ''MecabNodeFeatures
--- [
+  case pos of
+    PosNoun -> makeNounMecabEntry
+    PosExpressions -> makeNounMecabEntry
+    PosNounType AdverbialNoun -> makeNounAdvMecabEntry
+    PosNounType AdjNoun_No -> makeNounAdjMecabEntry
+    PosNounType _ -> makeNounMecabEntry
+
+    -- PosAdverb _ -> 
+
+    PosAdjective IAdjective -> makeAdjMecabEntries
+    PosAdjective _ -> makeNounAdjMecabEntry
+
+    PosVerb vt _ -> 
 --     ( PosNoun
---     , 59716
+--     , 76793
 --     )
 -- ,
 --     ( PosExpressions
---     , 11456
+--     , 12334
 --     )
 -- ,
 --     ( PosNounType AdjNoun_No
---     , 2569
+--     , 2734
 --     )
 -- ,
 --     ( PosNounType NounWithSuru
---     , 2399
+--     , 2668
 --     )
 -- ,
 --     ( PosVerb ( Regular Ichidan ) NotSpecified
---     , 2189
+--     , 2215
 --     )
 -- ,
 --     ( PosAdjective IAdjective
---     , 1608
+--     , 1665
 --     )
 -- ,
 --     ( PosAdjective NaAdjective
---     , 1564
+--     , 1658
 --     )
--- ,
+
 --     ( PosVerb ( Regular ( Godan RuEnding ) ) NotSpecified
 --     , 1448
 --     )

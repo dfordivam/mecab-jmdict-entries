@@ -25,6 +25,7 @@ import Control.Monad.Trans.Resource
 import NLP.Japanese.Utils
 import Data.Binary
 import Data.Conduit
+import MecabEntry
 
 import Text.MeCab
 import qualified Data.ByteString.Lazy as BSL
@@ -135,30 +136,71 @@ data MecabNodeFeatures = MecabNodeFeatures
   deriving (Show)
 
 makeLenses ''MecabNodeFeatures
-  case pos of
-    PosNoun -> makeNounMecabEntry
-    PosExpressions -> makeNounMecabEntry
-    PosNounType AdverbialNoun -> makeNounAdvMecabEntry
-    PosNounType AdjNoun_No -> makeNounAdjMecabEntry
-    PosNounType _ -> makeNounMecabEntry
 
-    -- PosAdverb _ -> 
+createMecabEntries :: Entry -> [MecabEntry]
+createMecabEntries e = concat $ map mainF vs
+  where
+    mainF v =
+      case pos of
+        PosNoun -> [makeNounMecabEntry v]
+        PosExpressions -> [makeNounMecabEntry v]
+        PosNounType AdverbialNoun -> [makeNounAdvMecabEntry v]
+        PosNounType AdjNoun_No -> [makeNounAdjMecabEntry v]
+        PosNounType _ -> [makeNounMecabEntry v]
 
-    PosAdjective IAdjective -> makeAdjMecabEntries
-    PosAdjective _ -> makeNounAdjMecabEntry
+        -- PosAdverb _ ->
 
-    PosVerb (Regular Ichidan) _ -> 
-    PosVerb (Regular (Godan ending)) _ -> 
-    PosVerb (Irregular SuruI) _ -> "サ変・−スル"
-    -- PosVerb (Irregular GodanRu) _ ->  -- mostly exp
-    -- PosVerb (Special Kureru) _ -> 
-    -- PosVerb (Special Kuru) _ -> -- mostly exp
-    -- PosVerb (Special SuVerb) _ -> 
-    -- PosVerb (Special SuruS) _ -> -- mostly exp
-    -- PosVerb (Irregular RuIrregular) _ -> 
-    -- PosVerb (Irregular NuIrregular) _ -> 
-    _ -> []
+        PosAdjective IAdjective
+          -> makeAdjMecabEntries v isSuffix
+        PosAdjective _
+          -> [makeNounAdjMecabEntry v]
 
+        PosVerb (Regular Ichidan) _
+          -> makeIchidanMecabEntries v
+        PosVerb (Regular (Godan ending))
+          _ -> makeGodanMecabEntries v ending
+        PosVerb (Irregular SuruI) _
+          -> makeSuruIMecabEntries v
+        -- PosVerb (Irregular GodanRu) _ ->  -- mostly exp
+        -- PosVerb (Special Kureru) _ ->
+        -- PosVerb (Special Kuru) _ -> -- mostly exp
+        -- PosVerb (Special SuVerb) _ ->
+        -- PosVerb (Special SuruS) _ -> -- mostly exp
+        -- PosVerb (Irregular RuIrregular) _ ->
+        -- PosVerb (Irregular NuIrregular) _ ->
+        _ -> []
+
+    defRP = (e ^. entryReadingElements . to (NE.head) . readingPhrase)
+    vs = (map findRestReading ks)
+      <> (map (\x -> (unReadingPhrase x, x)) rs)
+
+    ks = (e ^.. entryKanjiElements . traverse . kanjiPhrase)
+
+    rs = (e ^.. entryReadingElements . traverse . readingPhrase)
+
+    findRestReading kp = (,) (unKanjiPhrase kp)
+      $ maybe defRP _readingPhrase
+      $ Map.lookup kp (restrictedKanjiPhrases e)
+    v = ("", ReadingPhrase "")
+    isSuffix = elem PosSuffix poss
+      || elem (PosNounType SuffixNoun) poss
+    poss = e ^.. entrySenses . traverse. sensePartOfSpeech . traverse
+    pnt = head [x | PosNounType x <- poss]
+    pvt = head [x | PosVerb x _ <- poss]
+    pos
+      | elem PosExpressions poss = PosExpressions
+      | elem PosNoun poss = PosNoun
+      | otherwise = maybe PosNoun identity
+        $ (PosNounType <$> pnt)
+        <|> (PosVerb <$> pvt <*> pure Transitive)
+
+restrictedKanjiPhrases :: Entry
+  -> Map KanjiPhrase ReadingElement
+restrictedKanjiPhrases e = Map.fromList $ concat $
+  e ^.. entryReadingElements . traverse
+    . to (\re -> re ^.. readingRestrictKanji . traverse
+           . to (\kp -> (kp, re)))
+-- Stats
 --     ( PosNoun
 --     , 76793
 --     )

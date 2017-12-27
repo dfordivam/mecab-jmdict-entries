@@ -43,6 +43,16 @@ data MecabEntry = MecabEntry
   }
   deriving (Show)
 
+renderEntry :: MecabEntry -> Text
+renderEntry (MecabEntry s n r t5 t6 t9 t10 t11 t12)
+  = mconcat $ intersperse ","
+  [s, tshow n, tshow n, tshow r, t5
+  , f t6, "*", "*", f t9, f t10, t11, t12, t12]
+  where
+    f (Just t) = t
+    f Nothing = "*"
+    tshow = T.pack . show
+
 -- 1 見づら～いっ
 -- 2 ,19
 -- 3 ,19

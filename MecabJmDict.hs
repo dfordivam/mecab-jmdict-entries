@@ -149,14 +149,16 @@ makeLenses ''MecabNodeFeatures
 
     PosVerb (Regular Ichidan) _ -> 
     PosVerb (Regular (Godan ending)) _ -> 
-    PosVerb (Irregular SuruI) _ -> 
-    PosVerb (Irregular GodanRu) _ -> 
-    PosVerb (Irregular RuIrregular) _ -> 
-    PosVerb (Irregular NuIrregular) _ -> 
-    PosVerb (Special Kureru) _ -> 
-    PosVerb (Special Kuru) _ -> 
-    PosVerb (Special SuVerb) _ -> 
-    PosVerb (Special SuruS) _ -> 
+    PosVerb (Irregular SuruI) _ -> "サ変・−スル"
+    -- PosVerb (Irregular GodanRu) _ ->  -- mostly exp
+    -- PosVerb (Special Kureru) _ -> 
+    -- PosVerb (Special Kuru) _ -> -- mostly exp
+    -- PosVerb (Special SuVerb) _ -> 
+    -- PosVerb (Special SuruS) _ -> -- mostly exp
+    -- PosVerb (Irregular RuIrregular) _ -> 
+    -- PosVerb (Irregular NuIrregular) _ -> 
+    _ -> []
+
 --     ( PosNoun
 --     , 76793
 --     )

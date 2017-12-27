@@ -206,24 +206,28 @@ makeGodanMecabEntries (s,rp) end =
    | t12 <- readings]
   where
     i = 610
-    stem = assert (T.last s == 'る') (T.init s)
+    stem = (T.init s)
     surfaces = map (\e -> stem <> e) endings
     readings = map (\e -> (T.init $ getKatakana rp)
                      <> (toKatakana e)) endings
-     case end of
-       KuEnding -> "五段・カ行イ音便"
-       -- IkuYuku -> "五段・カ行促音便" -- 行く
-       -- IkuYuku -> "五段・カ行促音便ユク"
-       GuEnding -> "五段・ガ行"
-       SuEnding -> "五段・サ行"
-       TuEnding -> "五段・タ行"
-       NuEnding -> "五段・ナ行"
-       BuEnding -> "五段・バ行"
-       MuEnding -> "五段・マ行"
-       RuEnding -> "五段・ラ行"
+    endings = map fst es
+    types = map snd es
+    (es, t7) = case end of
+       KuEnding -> (,) kuEndings "五段・カ行イ音便"
+       GuEnding -> (,) guEndings "五段・ガ行"
+       SuEnding -> (,) suEndings "五段・サ行"
+       TuEnding -> (,) tuEndings "五段・タ行"
+       NuEnding -> (,) nuEndings "五段・ナ行"
+       BuEnding -> (,) buEndings "五段・バ行"
+       MuEnding -> (,) muEndings "五段・マ行"
+       RuEnding -> (,) ruEndings "五段・ラ行"
+       UEnding ->  (,) uEndings "五段・ワ行促音便" -- <= prefer
+
        -- GodanAru -> "五段・ラ行特殊"
        -- UEnding -> "五段・ワ行ウ音便"
-       UEnding -> "五段・ワ行促音便" -- <= prefer
+       -- IkuYuku -> "五段・カ行促音便" -- 行く
+       -- IkuYuku -> "五段・カ行促音便ユク"
+
 
 -- やじる,772,772,9279,動詞,自立,*,*,五段・ラ行,基本形,やじる,ヤジル,ヤジル
 -- やじら,780,780,9279,動詞,自立,*,*,五段・ラ行,未然形,やじる,ヤジラ,ヤジラ
@@ -399,6 +403,56 @@ uEndings =
        , ("え" , "仮定形")
        , ("え" , "命令ｅ")]
 
+-- おくする,583,583,9279,動詞,自立,*,*,サ変・−スル,基本形,おくする,オクスル,オクスル
+-- おくす,584,584,9279,動詞,自立,*,*,サ変・−スル,文語基本形,おくする,オクス,オクス
+-- おくし,587,587,9279,動詞,自立,*,*,サ変・−スル,未然形,おくする,オクシ,オクシ
+-- おくしよ,585,585,9279,動詞,自立,*,*,サ変・−スル,未然ウ接続,おくする,オクシヨ,オクシヨ
+-- おくしょ,585,585,9279,動詞,自立,*,*,サ変・−スル,未然ウ接続,おくする,オクショ,オクショ
+-- おくせ,586,586,9279,動詞,自立,*,*,サ変・−スル,未然レル接続,おくする,オクセ,オクセ
+-- おくすれ,581,581,9279,動詞,自立,*,*,サ変・−スル,仮定形,おくする,オクスレ,オクスレ
+-- おくせよ,589,589,9279,動詞,自立,*,*,サ変・−スル,命令ｙｏ,おくする,オクセヨ,オクセヨ
+-- おくしろ,588,588,9279,動詞,自立,*,*,サ変・−スル,命令ｒｏ,おくする,オクシロ,オクシロ
+-- おくすりゃ,582,582,9279,動詞,自立,*,*,サ変・−スル,仮定縮約１,おくする,オクスリャ,オクスリャ
+
+makeSuruIMecabEntries
+  :: (Surface, ReadingPhrase)
+  -> Bool
+  -> [MecabEntry]
+makeSuruIMecabEntries (s,rp) =
+  [MecabEntry su i 7150 "動詞" (Just "自立") "サ変・−スル" t10 s t12
+   | su <- surfaces
+   | t10 <- types
+   | t12 <- readings]
+  where
+    i = 610
+    stem = assert (T.isSuffixOf "する" s)
+      (maybe "" identity $ T.stripSuffix "する" s)
+    surfaces = map (\e -> stem <> e) endings
+    readings = map (\e -> (T.init $ T.init $ getKatakana rp)
+                     <> (toKatakana e)) endings
+    types = map Just
+      [ "基本形"
+      , "文語基本形"
+      , "未然形"
+      , "未然ウ接続"
+      , "未然ウ接続"
+      , "未然レル接続"
+      , "仮定形"
+      , "命令ｙｏ"
+      , "命令ｒｏ"
+      , "仮定縮約１"]
+
+    endings =
+      [ "する"
+      , "す"
+      , "し"
+      , "しよ"
+      , "しょ"
+      , "せ"
+      , "すれ"
+      , "せよ"
+      , "しろ"
+      , "すりゃ"]
 
 -- Adj.csv
 -- t2, t3 (11, 146)

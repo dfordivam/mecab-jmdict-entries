@@ -147,7 +147,16 @@ makeLenses ''MecabNodeFeatures
     PosAdjective IAdjective -> makeAdjMecabEntries
     PosAdjective _ -> makeNounAdjMecabEntry
 
-    PosVerb vt _ -> 
+    PosVerb (Regular Ichidan) _ -> 
+    PosVerb (Regular (Godan ending)) _ -> 
+    PosVerb (Irregular SuruI) _ -> 
+    PosVerb (Irregular GodanRu) _ -> 
+    PosVerb (Irregular RuIrregular) _ -> 
+    PosVerb (Irregular NuIrregular) _ -> 
+    PosVerb (Special Kureru) _ -> 
+    PosVerb (Special Kuru) _ -> 
+    PosVerb (Special SuVerb) _ -> 
+    PosVerb (Special SuruS) _ -> 
 --     ( PosNoun
 --     , 76793
 --     )
